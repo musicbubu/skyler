@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>Skyler 的 Scratch 遊戲廳</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: sky-band header, featured games as big tiles, experiments as a compact shelf */
+:root{
+  --bg:#f3f7fc; --surface:#ffffff; --fg:#1b2a3d; --muted:#5b6b80; --line:#d8e2ee;
+  --sky:#2f7fe0; --sun:#ffb627; --ink-on-sun:#2a1d00;
+  --display:"Baloo 2","Noto Sans TC",system-ui,sans-serif;
+  --body:"Noto Sans TC",system-ui,-apple-system,"PingFang TC",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1824; --surface:#172334; --fg:#e7eef8; --muted:#9aabc0; --line:#26354a;
+  --sky:#6aa8ff; --sun:#ffc24d; --ink-on-sun:#2a1d00; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1824; --surface:#172334; --fg:#e7eef8; --muted:#9aabc0; --line:#26354a;
+  --sky:#6aa8ff; --sun:#ffc24d; --ink-on-sun:#2a1d00; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.6}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{padding-block:48px 28px}
+.tag{display:inline-block;font-size:13px;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:8px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(34px,7vw,60px);line-height:1.05;margin:0;text-wrap:balance}
+h1 span{color:var(--sky)}
+.lead{color:var(--muted);max-width:60ch;margin:14px 0 0}
+.stats{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.chip{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 14px;font-size:14px;font-variant-numeric:tabular-nums}
+.chip b{color:var(--sky)}
+section{padding-block:20px 36px}
+h2{font-family:var(--display);font-weight:800;font-size:26px;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 18px;font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px}
+.card{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;color:inherit;text-decoration:none;transition:transform .15s,border-color .15s;cursor:pointer;text-align:left;font:inherit;padding:0}
+.card:hover{transform:translateY(-3px);border-color:var(--sky)}
+.card:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.art{aspect-ratio:4/3;max-width:100%;width:100%;display:block;object-fit:cover;background:#fff}
+.info{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.name{font-weight:700;font-size:16px;line-height:1.35;overflow-wrap:anywhere}
+.meta{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted)}
+.play{background:var(--sun);color:var(--ink-on-sun);font-weight:700;border-radius:999px;padding:2px 12px}
+.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.shelf .art{aspect-ratio:16/9}
+.shelf .name{font-size:14px}
+footer{padding-block:24px 48px;color:var(--muted);font-size:14px;border-top:1px solid var(--line)}
+footer a{color:var(--sky)}
+/* player (self-hosted build only) */
+dialog{border:none;border-radius:16px;padding:0;background:var(--surface);color:var(--fg);width:min(520px,calc(100vw - 32px));max-width:100%}
+dialog::backdrop{background:rgba(10,20,35,.6)}
+.pbar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px}
+.pbar strong{font-family:var(--display);font-size:20px;min-width:0;overflow-wrap:anywhere}
+.pbar button{background:var(--bg);border:1px solid var(--line);color:var(--fg);border-radius:8px;padding:4px 12px;font:inherit;cursor:pointer}
+.frame{aspect-ratio:485/402;width:100%;max-width:100%;border:0;display:block;background:#000}
+.plink{display:block;padding:10px 16px 14px;font-size:14px;color:var(--sky)}
+@media (prefers-reduced-motion:reduce){.card{transition:none}.card:hover{transform:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="tag">SCRATCH 作品集 · @SkylerTaiwan</div>
+    <h1>Skyler 的 <span>遊戲廳</span></h1>
+    <p class="lead">射擊、坦克、貪食蛇、鋼琴，還有一堆正在實驗的點子。點一張卡片就能開始玩，按綠旗啟動。</p>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <section>
+    <h2>主打遊戲</h2>
+    <p class="sub">已經取好名字、可以直接挑戰的作品</p>
+    <div class="grid" id="featured"></div>
+  </section>
+
+  <section>
+    <h2>實驗室</h2>
+    <p class="sub">還沒命名的練習與實驗作品</p>
+    <div class="shelf" id="lab"></div>
+  </section>
+
+  <footer>
+    全部作品都在 Scratch 上：<a href="https://scratch.mit.edu/users/SkylerTaiwan/" target="_blank" rel="noopener">scratch.mit.edu/users/SkylerTaiwan</a>
+  </footer>
+</div>
+
+<dialog id="player">
+  <div class="pbar"><strong id="ptitle"></strong><button id="pclose" type="button">關閉</button></div>
+  <iframe id="pframe" class="frame" allowfullscreen allowtransparency="true" title="Scratch 作品"></iframe>
+  <a id="plink" class="plink" target="_blank" rel="noopener">在 Scratch 上看程式 ↗</a>
+</dialog>
+
+<script>
+const EMBED = true;
+const THUMBS = ["1398132122","1398128522","1398125947","1398134439"];
+const thumbUrl = id => THUMBS.includes(id) ? `https://uploads.scratch.mit.edu/get_image/project/${id}_480x360.png` : null;
+const projects = [
+  {id:"1398132122", thumb:true, title:"Galaxy Guard 銀河守衛 (Hard)", kind:"射擊"},
+  {id:"1398131128", title:"Sky Striker", kind:"射擊"},
+  {id:"1398128522", thumb:true, title:"Fire Tank", kind:"坦克"},
+  {id:"1398133030", title:"Snake", kind:"經典"},
+  {id:"1398133158", title:"Nitro Rush 氮氣狂飆", kind:"賽車"},
+  {id:"1398125947", thumb:true, title:"Skyler's Piano", kind:"音樂"},
+  {id:"1398134439", thumb:true, title:"story", kind:"故事"},
+  {id:"1398133090", title:"don't play this game", kind:"挑戰"},
+  {id:"1398132009", title:"G04", kind:"遊戲"},
+  {id:"1398132333", thumb:true, title:"Untitled-40", lab:true},
+  {id:"1398132373", thumb:true, title:"Untitled-20", lab:true},
+  {id:"1398132503", thumb:true, title:"Untitled-15", lab:true},
+  {id:"1398132627", title:"Untitled-9", lab:true},
+  {id:"1398132673", title:"Untitled-32", lab:true},
+  {id:"1398132753", title:"Untitled-4", lab:true},
+  {id:"1398132874", title:"Untitled-30", lab:true},
+  {id:"1398132956", title:"Untitled-33", lab:true}
+];
+
+// Pixel-art cover generated from the project id (thumbnails can't load here)
+function cover(p, w, h){
+  const c = document.createElement("canvas"); c.width = w; c.height = h; c.className = "art";
+  const g = c.getContext("2d");
+  let s = 0; for (const ch of p.id) s = (s*31 + ch.charCodeAt(0)) >>> 0;
+  const rnd = () => (s = (s*1664525 + 1013904223) >>> 0) / 4294967296;
+  const hue = Math.floor(rnd()*360);
+  g.fillStyle = `hsl(${hue} 70% 42%)`; g.fillRect(0,0,w,h);
+  const cell = Math.round(w/12);
+  for (let y=0; y<h; y+=cell) for (let x=0; x<w; x+=cell){
+    const r = rnd(); if (r < .28){
+      g.fillStyle = `hsl(${(hue + (r<.1?40:-30)+360)%360} 80% ${55 + Math.floor(r*60)}%)`;
+      g.fillRect(x+1,y+1,cell-2,cell-2);
+    }
+  }
+  g.fillStyle = "rgba(0,0,0,.28)"; g.fillRect(0,h*0.62,w,h*0.38);
+  g.fillStyle = "#fff"; g.font = `800 ${Math.round(h*0.3)}px "Baloo 2", sans-serif`;
+  g.textBaseline = "middle";
+  const label = p.lab ? "#" + p.title.replace(/\D/g,"") : (p.title.match(/[A-Za-z0-9]/)||["?"])[0].toUpperCase();
+  g.fillText(label, w*0.07, h*0.81);
+  return c;
+}
+
+function card(p){
+  const url = `https://scratch.mit.edu/projects/${p.id}/`;
+  const el = EMBED ? document.createElement("button") : document.createElement("a");
+  el.className = "card";
+  if (EMBED){ el.type = "button"; el.addEventListener("click", () => openPlayer(p)); }
+  else { el.href = url; el.target = "_blank"; el.rel = "noopener"; }
+  const src = p.thumb && thumbUrl(p.id);
+  if (src){ const im = document.createElement("img"); im.className = "art"; im.alt = ""; im.loading = "lazy"; im.src = src;
+    im.onerror = () => im.replaceWith(p.lab ? cover(p, 320, 180) : cover(p, 400, 300)); el.appendChild(im); }
+  else el.appendChild(p.lab ? cover(p, 320, 180) : cover(p, 400, 300));
+  const info = document.createElement("div"); info.className = "info";
+  const n = document.createElement("div"); n.className = "name"; n.textContent = p.title;
+  const m = document.createElement("div"); m.className = "meta";
+  const k = document.createElement("span"); k.textContent = p.kind || "實驗";
+  const pl = document.createElement("span"); pl.className = "play"; pl.textContent = "玩 ▶";
+  m.append(k, pl); info.append(n, m); el.appendChild(info);
+  return el;
+}
+
+const dlg = document.getElementById("player");
+function openPlayer(p){
+  document.getElementById("ptitle").textContent = p.title;
+  document.getElementById("pframe").src = `https://scratch.mit.edu/projects/${p.id}/embed`;
+  document.getElementById("plink").href = `https://scratch.mit.edu/projects/${p.id}/`;
+  dlg.showModal();
+}
+document.getElementById("pclose").addEventListener("click", () => dlg.close());
+dlg.addEventListener("close", () => { document.getElementById("pframe").src = "about:blank"; });
+
+function render(){
+  const f = document.getElementById("featured"), l = document.getElementById("lab");
+  f.replaceChildren(); l.replaceChildren();
+  projects.forEach(p => (p.lab ? l : f).appendChild(card(p)));
+  const nf = projects.filter(p=>!p.lab).length;
+  document.getElementById("stats").innerHTML =
+    `<span class="chip">共 <b>${projects.length}</b> 個作品</span>` +
+    `<span class="chip">主打遊戲 <b>${nf}</b></span>` +
+    `<span class="chip">實驗作品 <b>${projects.length-nf}</b></span>`;
+}
+render();
+if (document.fonts) document.fonts.ready.then(render);
+</script>
+
+</body>
+</html>
